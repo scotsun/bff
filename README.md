@@ -22,15 +22,21 @@ We use SNN contrastive objective [3] as the regularization terms to refine the r
 <p align="center"> <img src="./res/objective.png" alt="objective function" width="400"/>
 
 ### Characteristics of BFF compared to other approaches
+<p align="center"> <img src="./res/bff-vs-other.png" alt="bff vs. other" width="400"/>
 
-![comparison](./res/bff-vs-other.png "compare")
+
+## ⚙️ Code & Environment Setting
+
+### Code Structure
+- `core/`: Contains the core components of the BFF framework, including models, data utilities, training components, and loss functions.
+- `utils/`: Houses utility functions and modules used throughout the project.
+
+[More details about the code](README-code.md)
 
 
-## ⚙️ Repo Detail
-### Code detail
-TBD
 
-### Requirements
+
+### Environment
 In this project, we tokenize the medical events using `torchtext==0.17.0`, which underwent siginificant changes in its APIs and functionalities compared to some of the previous versions. To ensure the compatiblity across packages and correct execution of our code in the repo, we name some of the key packages' versions below.
 ```
 torch==2.2.0
