@@ -28,3 +28,14 @@ We use SNN contrastive objective [3] as the regularization terms to refine the r
 
 ## ⚙️ Repo Detail
 code will be uploaded soon
+
+### Requirements
+In this project, we tokenize the medical events using `torchtext==0.17.0`, which underwent siginificant changes in its APIs and functionalities compared to some of the previous versions. To ensure the compatiblity across packages and correct execution of our code in the repo, we name some of the key packages' versions below.
+```
+torch==2.2.0
+torchtext==0.17.0
+numpy==1.24.4
+pandas==2.2.0
+scikit-learn==1.6.1
+scikit-survival==0.24.1
+```
