@@ -8,19 +8,15 @@ The `core` module contains the fundamental components of the BFF (Borrowing From
 - `models.py`: Implements various embedding models including:
   - `CBOW`: Continuous Bag of Words model
   - `GloVe`: Global Vectors for word representation
-  - `BERT`: Bidirectional Encoder Representations from Transformers
-  - `PositionalEncoder`: For positional embeddings in transformer models
 
 ### Data Utilities
 - `data_utils.py`: Contains data processing classes and utilities:
-  - `Corpus`, `GloVeDataset`, `BERTPretainingData` dataset classes
-  - `BERTCollate` for batch processing
+  - `Corpus`, `GloVeDataset` dataset classes
   - `MultiModalDataGenerator` and `MultiModalDataset` for multi-modal data handling
 
 ### Training Components
 - `trainer.py`: Training framework with:
-  - `Trainer` base class
-  - Specialized trainers like `BERTTrainer`
+  - `Trainer` base class and other specialized trainers
   - `EarlyStopping` utility
 
 ### Downstream Models
@@ -42,9 +38,7 @@ The `core` module contains the fundamental components of the BFF (Borrowing From
 
 ## Utils Submodule
 
-The `utils/` directory contains utility functions:
-- `bert_utils.py`: BERT-specific utilities
-- `tokenizer_utils.py`: Tokenizer constants and special tokens
+The `utils/` directory contains utility global param & functions
 
 ## Usage
 
