@@ -15,9 +15,6 @@ from typing import Generator
 from core.utils.tokenizer_utils import (
     PAD_TOKEN,
     UNK_TOKEN,
-    BOS_TOKEN,
-    EOS_TOKEN,
-    BERT_SPECIAL_TOKENS,
     CBOW_SPECIAL_TOKENS,
 )
 
@@ -48,44 +45,6 @@ class GloVeDataset(Dataset):
         return len(self.cooccurrance)
 
 
-class BERTPretainingData(Dataset):
-    """
-    Dataset object for BERT pretraining
-    """
-
-    def __init__(
-        self, raw_modality: pd.DataFrame, patid_list, transform: VocabTransform
-    ):
-        super().__init__()
-        self.raw_modality = raw_modality
-        self.patid_list = patid_list
-        self.transform = transform
-
-    def __getitem__(self, index) -> tuple:
-        patid = self.patid_list[index]
-
-        pat_df = self.raw_modality.get_group(patid)
-        pat_df = pat_df.dropna(how="any")
-
-        tokens = pat_df["EVENT"].to_list()
-        tokens = [BOS_TOKEN] + tokens + [EOS_TOKEN]
-        tokens = torch.tensor(self.transform(tokens), dtype=torch.long)
-
-        positions = (
-            pd.to_datetime(pat_df["TIME"])
-            .rank(method="dense")
-            .astype("int")
-            .values.tolist()
-        )
-
-        positions = [0] + positions + [max(positions) + 1]
-        positions = torch.tensor(positions, dtype=torch.long)
-        return tokens, positions
-
-    def __len__(self) -> int:
-        return len(self.patid_list)
-
-
 def tensor_pad(tensor: torch.Tensor, max_len: int, padding_value: int):
     padded_tensor = pad_sequence(tensor, batch_first=True, padding_value=padding_value)
     if padded_tensor.shape[1] < max_len:
@@ -96,40 +55,6 @@ def tensor_pad(tensor: torch.Tensor, max_len: int, padding_value: int):
     if padded_tensor.shape[1] == 0:
         padded_tensor = torch.zeros(padded_tensor.shape[0], max_len)
     return padded_tensor[:, :max_len]
-
-
-class BERTCollate:
-    """
-    Return batch in a dict data struct
-    {
-        padded_tokens: tensor[long],
-        padded_positions: tensor[long],
-        pad_masks: tensor[bool]
-    }
-    """
-
-    def __init__(self, padding_token=0, max_len=512):
-        self.padding_token = padding_token
-        self.max_len = max_len
-
-    def __call__(self, batch) -> dict:
-        zipped_list = list(zip(*batch))
-        tokens = zipped_list[0]
-        positions = zipped_list[1]
-
-        padded_tokens = tensor_pad(tokens, self.max_len, self.padding_token)
-        padded_positions = tensor_pad(
-            positions, self.max_len, 0
-        )  # pad 0 for 0-th index, which will be finally ignored in mh-attn
-        pad_masks = (padded_tokens == self.padding_token).bool()
-
-        batch_result = {
-            "padded_tokens": padded_tokens.long(),
-            "padded_positions": padded_positions.long(),
-            "pad_masks": pad_masks.float(),
-        }
-
-        return batch_result
 
 
 class MultiModalDataGenerator:
@@ -300,8 +225,8 @@ def build_vocab(corpus_list: list[Corpus], min_freq: int, mode: str = "cbow"):
     match mode:
         case "cbow":
             special_tokens = CBOW_SPECIAL_TOKENS
-        case "bert":
-            special_tokens = BERT_SPECIAL_TOKENS
+        case _:
+            ValueError("only support cbow for now")
     total_corpus = ConcatDataset(corpus_list)
     vocab = build_vocab_from_iterator(
         total_corpus,

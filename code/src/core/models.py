@@ -1,6 +1,5 @@
 """Word embedding models."""
 
-import math
 import torch
 import torch.nn as nn
 from torch.utils.data import Dataset
@@ -108,51 +107,3 @@ def compute_co_occur_matrix(
             for i, context_token in enumerate(right_context):
                 co_occur_counts[(target_token, context_token)] += 1 / (i + 1)
     return co_occur_counts
-
-
-class PositionalEncoder(nn.Module):
-    def __init__(self, embed_size, max_len):
-        super().__init__()
-        position = torch.arange(max_len).unsqueeze(1)
-        div_term = torch.exp(
-            torch.arange(0, embed_size, 2) * (-math.log(10000.0) / embed_size)
-        )
-        pe = torch.zeros(max_len, embed_size)
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        self.register_buffer("pe", pe)
-
-    def forward(self, position: torch.Tensor) -> torch.Tensor:
-        """
-        Arguments:
-            x: Tensor, shape ``[batch_size, seq_len, embedding_dim]``
-        """
-        positional_embedding = self.pe[position]
-        return positional_embedding
-
-
-class BERT(nn.Module):
-    def __init__(self, vocab_size, embed_size, max_len, nhead, hidden_size, n_layer, dropout):
-        super().__init__()
-        self.embed_size = embed_size
-        self.vocab_size = vocab_size
-        self.token_embedding = nn.Embedding(vocab_size, embed_size)
-        self.pos_encoder = PositionalEncoder(embed_size, max_len)
-        encoder_layer = nn.TransformerEncoderLayer(
-            d_model=embed_size,
-            nhead=nhead,
-            dim_feedforward=hidden_size,
-            dropout=dropout,
-            batch_first=True,
-        )
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layer, n_layer)
-        self.token_pred_head = nn.Linear(embed_size, vocab_size)
-
-    def forward(self, tokens, positions, pad_masks):
-        token_embedded = self.token_embedding(tokens)
-        position_embedded = self.pos_encoder(positions)
-        embedded_sources = token_embedded + position_embedded
-
-        embedded_sources = self.transformer_encoder(embedded_sources, src_key_padding_mask=pad_masks)
-        token_predictions = self.token_pred_head(embedded_sources)
-        return token_predictions

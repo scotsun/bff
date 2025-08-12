@@ -9,7 +9,6 @@ from sklearn.metrics import roc_auc_score, average_precision_score
 from sksurv.metrics import cumulative_dynamic_auc
 from sksurv.util import Surv
 
-from core.models import BERT
 from core.downstream_models import (
     ForecastingAE,
     BackboneModel,
@@ -20,13 +19,6 @@ from core.downstream_models import (
 )
 from core.bootstrap import CDAUCBootstrapping, AUCBootstrapping
 from core.data_utils import MODALITY_DATA_SELECT, SUPPRESS_MODALITY
-from core.utils.tokenizer_utils import (
-    BERT_SPECIAL_TOKENS,
-    PAD_TOKEN,
-    BOS_TOKEN,
-    EOS_TOKEN,
-    MASK_TOKEN,
-)
 
 
 class EarlyStopping:
@@ -113,108 +105,6 @@ class Trainer:
 
     def _valid(self, **kwarg):
         pass
-
-
-class BERTTrainer(Trainer):
-    def __init__(
-        self,
-        model: BERT,
-        optimizer,
-        criterion: nn.Module,
-        early_stopping,
-        verbose_period,
-        device,
-    ):
-        super().__init__(model, optimizer, early_stopping, verbose_period, device)
-        self.criterion = criterion
-
-    def _train(self, dataloader: DataLoader, verbose: bool, epoch_id: int):
-        model: BERT = self.model
-        device = self.device
-        optimizer = self.optimizer
-        criterion = self.criterion
-        model.train()
-
-        with tqdm(dataloader, unit="batch", disable=not verbose) as bar:
-            bar.set_description(f"epoch {epoch_id}")
-            for batch in dataloader:
-                optimizer.zero_grad()
-                tokens, positions, pad_masks = batch.values()
-                target_tokens = tokens.clone()
-                tokens, positions, pad_masks, target_tokens = (
-                    tokens.to(device),
-                    positions.to(device),
-                    pad_masks.to(device),
-                    target_tokens.to(device),
-                )
-
-                _rand_value = torch.rand(tokens.shape).to(device)
-                rand_mask = (
-                    (_rand_value < 0.15)
-                    * (tokens != BERT_SPECIAL_TOKENS[PAD_TOKEN])
-                    * (tokens != BERT_SPECIAL_TOKENS[BOS_TOKEN])
-                    * (tokens != BERT_SPECIAL_TOKENS[EOS_TOKEN])
-                )
-                tokens[rand_mask] = BERT_SPECIAL_TOKENS[MASK_TOKEN]
-
-                logits = model(tokens, positions, pad_masks)
-                loss = criterion(
-                    logits.view(-1, model.vocab_size), target_tokens.view(-1)
-                )
-                loss.backward()
-                optimizer.step()
-
-                bar.set_postfix(loss=float(loss))
-                bar.update()
-
-    def _valid(self, dataloader, verbose, epoch_id):
-        model: BERT = self.model
-        device = self.device
-        criterion = self.criterion
-        model.eval()
-
-        total_loss, total_acc, n_batch = 0, 0, 0
-
-        with tqdm(dataloader, unit="batch", disable=not verbose) as bar:
-            bar.set_description(f"epoch {epoch_id}")
-            for batch in dataloader:
-                tokens, positions, pad_masks = batch.values()
-                target_tokens = tokens.clone()
-                tokens, positions, pad_masks, target_tokens = (
-                    tokens.to(device),
-                    positions.to(device),
-                    pad_masks.to(device),
-                    target_tokens.to(device),
-                )
-
-                _rand_value = torch.rand(tokens.shape).to(device)
-                rand_mask = (
-                    (_rand_value < 0.15)
-                    * (tokens != BERT_SPECIAL_TOKENS[PAD_TOKEN])
-                    * (tokens != BERT_SPECIAL_TOKENS[BOS_TOKEN])
-                    * (tokens != BERT_SPECIAL_TOKENS[EOS_TOKEN])
-                )
-                tokens[rand_mask] = BERT_SPECIAL_TOKENS[MASK_TOKEN]
-
-                logits = model(tokens, positions, pad_masks)
-                logits, target_tokens = (
-                    logits.view(-1, model.vocab_size),
-                    target_tokens.view(-1),
-                )
-                loss = criterion(logits, target_tokens)
-
-                bar.update()
-
-                total_loss += float(loss)
-                total_acc += (
-                    (logits.argmax(dim=1) == target_tokens).float().mean().item()
-                )
-                n_batch += 1
-                bar.set_postfix(
-                    loss=float(total_loss / n_batch), acc=float(total_acc / n_batch)
-                )
-        if self.early_stopping:
-            self.early_stopping.step(total_acc / len(dataloader), model)
 
 
 class DiscreteTimeNNTrainer(Trainer):
@@ -470,8 +360,15 @@ class BinaryTrainer(Trainer):
 
 
 class ForecastAEPreTrainer(Trainer):
-    def __init__(self, model, optimizer, early_stopping, verbose_period, device, 
-                 modality_selection: str = "first_check",):
+    def __init__(
+        self,
+        model,
+        optimizer,
+        early_stopping,
+        verbose_period,
+        device,
+        modality_selection: str = "first_check",
+    ):
         super().__init__(model, optimizer, early_stopping, verbose_period, device)
         self.criterion = nn.MSELoss()
         if modality_selection not in ["first_check", "mid_check"]:
@@ -548,7 +445,6 @@ class ForecastDownstreamTrainer(Trainer):
         self.ae = ae
         for param in self.ae.parameters():
             param.requires_grad = False
-    
 
     def _train(self, dataloader: DataLoader, verbose: bool, epoch_id: int):
         model = self.model
@@ -567,14 +463,13 @@ class ForecastDownstreamTrainer(Trainer):
                 masks = batch["mask"].to(device)
                 inputs = batch["inputs"].to(device)
 
-
                 select = MODALITY_DATA_SELECT[self.modality_selection](masks)
                 masks = SUPPRESS_MODALITY[self.modality_selection](masks)[select]
                 inputs = inputs[select]
                 event, time = event[select], time[select]
-                
+
                 _, _, last_h = self.ae(inputs, masks)
-                
+
                 prediction = model(last_h)
 
                 loss = criterion(prediction, event, time)
@@ -616,7 +511,7 @@ class ForecastDownstreamTrainer(Trainer):
 
                 _, _, last_h = self.ae(inputs, masks)
                 prediction = model(last_h)
-                
+
                 # note: prediction[:, -1] is the logits for being censored
                 events.append(event)
                 times.append(time)
@@ -684,7 +579,7 @@ class ForecastDownstreamBinaryTrainer(Trainer):
         self.ae = ae
         for param in self.ae.parameters():
             param.requires_grad = False
-    
+
     def _train(self, dataloader: DataLoader, verbose: bool, epoch_id: int):
         model = self.model
         device = self.device
@@ -707,7 +602,7 @@ class ForecastDownstreamBinaryTrainer(Trainer):
 
                 _, _, last_h = self.ae(inputs, masks)
                 yh = model(last_h).squeeze()
-                
+
                 loss = criterion(yh, y)
                 loss.backward()
                 bar.set_postfix(loss=float(loss))
@@ -715,8 +610,13 @@ class ForecastDownstreamBinaryTrainer(Trainer):
 
                 bar.update()
 
-        
-    def _valid(self, dataloader: DataLoader, verbose: bool, epoch_id: int, bootstrapping: bool = False):
+    def _valid(
+        self,
+        dataloader: DataLoader,
+        verbose: bool,
+        epoch_id: int,
+        bootstrapping: bool = False,
+    ):
         model = self.model
         device = self.device
         model.eval()

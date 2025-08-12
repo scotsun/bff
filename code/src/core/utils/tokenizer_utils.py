@@ -1,4 +1,3 @@
-BERT_SPECIAL_TOKENS = {"<PAD>": 0, "<UNK>": 1, "<MASK>": 2, "<BOS>": 3, "<EOS>": 4}
 CBOW_SPECIAL_TOKENS = {"<PAD>": 0, "<UNK>": 1}
 
 PAD_TOKEN = "<PAD>"
