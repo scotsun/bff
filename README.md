@@ -28,8 +28,8 @@ We use SNN contrastive objective [3] as the regularization terms to refine the r
 ## ⚙️ Code & Environment Setting
 
 ### Code Structure
-- `core/`: Contains the core components of the BFF framework, including models, data utilities, training components, and loss functions.
-- `utils/`: Houses utility functions and modules used throughout the project.
+- `core/`: Contains the core components of the `BFF` framework and other approaches, including models, data utilities, trainers, and loss functions.
+- `experimental_utils/`: Houses utility functions and modules used throughout the project.
 
 [More details about the code](README-code.md)
 
