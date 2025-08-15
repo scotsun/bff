@@ -1,8 +1,15 @@
-# Core Module
+# Code Detail
+## Core Module
+The `src/core` module contains the fundamental components of the BFF (Borrowing From the Future) framework, including:
 
-The `core` module contains the fundamental components of the BFF (Borrowing From the Future) framework, including:
 
-## Key Components
+This module serves as the core implementation of the BFF framework, providing:
+1. Fundamental neural network architectures
+2. Data processing pipelines
+3. Training and evaluation utilities
+4. Specialized components for multi-modal learning and temporal modeling
+
+For specific usage examples, refer to the training scripts in the parent directory.
 
 ### Models
 - `models.py`: Implements various embedding models including:
@@ -33,19 +40,9 @@ The `core` module contains the fundamental components of the BFF (Borrowing From
 
 ### Bootstrap Utilities
 - `bootstrap.py`: Contains bootstrapping classes for evaluation:
-  - `AUCBootstrapping` for standard classification
-  - `CDAUCBootstrapping` for survival analysis
+  - `AUCBootstrapping` for binary classification
+  - `CDAUCBootstrapping` for time-to-event prediction
 
-## Utils Submodule
+## utils & experimental_utils
 
-The `utils/` directory contains utility global param & functions
-
-## Usage
-
-This module serves as the core implementation of the BFF framework, providing:
-1. Fundamental neural network architectures
-2. Data processing pipelines
-3. Training and evaluation utilities
-4. Specialized components for multi-modal learning and temporal modeling
-
-For specific usage examples, refer to the training scripts in the parent directory.
+The `src/core/utils/` & `src/experimental_utils` directory contains utility global param & functions
